@@ -83,7 +83,7 @@ void gl2Plane::gl_rgba_draw_array(bool initial, int width, int height, uint8_t *
 }
 
 void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height, uint8_t *data) {
-    const char *gl_shader_vertex_source_plane = GET_CHAR(
+    const char *gl_shader_vertex_plane_source = GET_CHAR(
             precision highp float;
             attribute vec4 aPosition;
             attribute vec2 aTexCoord;
@@ -93,7 +93,7 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
                 TexCoord = aTexCoord;
             }
     );
-    const char *gl_shader_fragment_source_plane = GET_CHAR(
+    const char *gl_shader_fragment_plane_source = GET_CHAR(
             precision highp float;
             varying vec2 TexCoord;
             uniform sampler2D TexSample;
@@ -101,7 +101,7 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
                 gl_FragColor = texture2D(TexSample, vec2(TexCoord.x, 1.0 - TexCoord.y));
             }
     );
-    const char *gl_shader_fbo_source_plane = GET_CHAR(
+    const char *gl_shader_fbo_plane_source = GET_CHAR(
             precision highp float;
             varying vec2 TexCoord;
             uniform sampler2D TexSample;
@@ -128,13 +128,14 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
         if (initial) {
             // gl_program
             m_b_program[0] = gl_program_create(
-                    gl_shader_vertex_source_plane,
-                    gl_shader_fbo_source_plane
+                    gl_shader_vertex_plane_source,
+                    gl_shader_fbo_plane_source
             );
             m_b_program[1] = gl_program_create(
-                    gl_shader_vertex_source_plane,
-                    gl_shader_fragment_source_plane
+                    gl_shader_vertex_plane_source,
+                    gl_shader_fragment_plane_source
             );
+            if (m_b_program[0] == GL_NONE || m_b_program[1] == GL_NONE) return;
             // vbo & ebo
             glGenBuffers(4, m_b_vbo);
             glBindBuffer(GL_ARRAY_BUFFER, m_b_vbo[0]);
@@ -186,7 +187,6 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
             glBindTexture(GL_TEXTURE_2D, m_b_texture[0]);
             GLint tex_sample_index = glGetUniformLocation(m_b_program[0], "TexSample");
             glUniform1i(tex_sample_index, 0);
-            gl_check(__LINE__);
         }
         { // draw
             glBindFramebuffer(GL_FRAMEBUFFER, m_b_fbo);

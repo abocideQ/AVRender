@@ -31,5 +31,6 @@
  * define
  */
 #define GET_CHAR(x) #x
+#define GL_SHADER_VERSION300 "#version 300 es \n"
 
 #endif //AVRENDER_COMMON_H
