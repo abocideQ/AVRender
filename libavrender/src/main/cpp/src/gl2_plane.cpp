@@ -1,6 +1,8 @@
 #include "gl2_plane.h"
 
 void gl2Plane::update_viewport(int width, int height) {
+    m_r_width = width;
+    m_r_height = height;
     glViewport(0, 0, width, height);
 }
 
@@ -122,7 +124,7 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
     const int loc_indices[] = {
             0, 1, 2, 1, 3, 2
     };
-    { // config gl_program & vbo &texture & fbo
+    { // config gl_program & vbo & ebo & texture & fbo
         if (initial) {
             // gl_program
             m_b_program[0] = gl_program_create(
@@ -133,7 +135,7 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
                     gl_shader_vertex_source_plane,
                     gl_shader_fragment_source_plane
             );
-            // vbo
+            // vbo & ebo
             glGenBuffers(4, m_b_vbo);
             glBindBuffer(GL_ARRAY_BUFFER, m_b_vbo[0]);
             glBufferData(GL_ARRAY_BUFFER, sizeof loc_vertex, loc_vertex, GL_STATIC_DRAW);
@@ -150,14 +152,21 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             }
+            glBindTexture(GL_TEXTURE_2D, m_b_texture[0]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            glBindTexture(GL_TEXTURE_2D, m_b_texture[1]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
             // fbo
             glGenFramebuffers(1, &m_b_fbo);
             glBindFramebuffer(GL_FRAMEBUFFER, m_b_fbo);
+            glBindTexture(GL_TEXTURE_2D, m_b_texture[1]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                                    m_b_texture[1], 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            gl_check(__LINE__);
         }
-        gl_check(__LINE__);
     }
     { // offscreen draw
         { // use gl_program
@@ -175,19 +184,43 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
         { // texture
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, m_b_texture[0]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
             GLint tex_sample_index = glGetUniformLocation(m_b_program[0], "TexSample");
-            glUniform1f(tex_sample_index, 0);
+            glUniform1i(tex_sample_index, 0);
+            gl_check(__LINE__);
         }
         { // draw
             glBindFramebuffer(GL_FRAMEBUFFER, m_b_fbo);
+            glViewport(0, 0, width, height);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (const void *) nullptr);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
         gl_check(__LINE__);
     }
     { // onscreen draw
+        glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        { // use program
+            glUseProgram(m_b_program[1]);
+        }
+        { // vbo
+            glBindBuffer(GL_ARRAY_BUFFER, m_b_vbo[0]);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), nullptr);
+            glBindBuffer(GL_ARRAY_BUFFER, m_b_vbo[1]);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_b_vbo[2]);
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+        }
+        { // texture
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, m_b_texture[1]);
+            GLint sample_tex_index = glGetUniformLocation(m_b_program[1], "TexSample");
+            glUniform1i(sample_tex_index, 0);
+        }
+        { // draw
+            glViewport(0, 0, m_r_width, m_r_height);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (const void *) nullptr);
+        }
         gl_check(__LINE__);
     }
 }

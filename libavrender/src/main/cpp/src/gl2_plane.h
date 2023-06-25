@@ -14,6 +14,8 @@ public:
     void gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height, uint8_t *data);
 
 protected:
+    int m_r_width, m_r_height;
+
     GLuint m_a_program;
     GLuint m_a_texture;
 

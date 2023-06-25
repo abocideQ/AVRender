@@ -23,14 +23,20 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         run {
             val container: LinearLayout = findViewById(R.id.ll_button)
-            val bt2gl2DrawPlane = Button(baseContext)
+            // gl2draw
+            var bt2gl2DrawPlane = Button(baseContext)
             bt2gl2DrawPlane.text = "gl2DrawPlane"
-            bt2gl2DrawPlane.setOnClickListener { gl2DrawPlane(findViewById(R.id.fl_root)) }
+            bt2gl2DrawPlane.setOnClickListener { gl2DrawPlane(1, findViewById(R.id.fl_root)) }
+            container.addView(bt2gl2DrawPlane)
+            // gl2draw_
+            bt2gl2DrawPlane = Button(baseContext)
+            bt2gl2DrawPlane.text = "gl2DrawPlane_vbo_ebo_fbo"
+            bt2gl2DrawPlane.setOnClickListener { gl2DrawPlane(2, findViewById(R.id.fl_root)) }
             container.addView(bt2gl2DrawPlane)
         }
     }
 
-    private fun gl2DrawPlane(container: ViewGroup) {
+    private fun gl2DrawPlane(drawType: Int, container: ViewGroup) {
         val bitmap = BitmapFactory.decodeResource(resources, R.drawable.room)
         val length: Int = bitmap.byteCount
         val data: ByteBuffer = ByteBuffer.allocate(length)
@@ -42,15 +48,15 @@ class MainActivity : AppCompatActivity() {
         glSurfaceView.setEGLContextClientVersion(2)
         glSurfaceView.setRenderer(object : GLSurfaceView.Renderer {
             override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-                glRender.native_gl2_rgba_draw(0, bitmap.width, bitmap.height, mByteArray[0])
+                glRender.native_gl2_rgba_draw(drawType, 0, bitmap.width, bitmap.height, mByteArray[0])
             }
 
             override fun onDrawFrame(gl: GL10?) {
-                glRender.native_gl2_rgba_draw(1, bitmap.width, bitmap.height, mByteArray[0])
+                glRender.native_gl2_rgba_draw(drawType, 1, bitmap.width, bitmap.height, mByteArray[0])
             }
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-                glRender.native_gl2_rgba_draw(2, width, height, null)
+                glRender.native_gl2_rgba_draw(drawType, 2, width, height, null)
             }
         })
         container.removeAllViews()

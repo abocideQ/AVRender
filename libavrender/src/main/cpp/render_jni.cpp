@@ -4,14 +4,23 @@
 
 auto *m_p_gl2_plane = new gl2Plane();
 
-void native_gl2_rgba_draw(JNIEnv *env, jobject *, jint type, jint w, jint h, jbyteArray data) {
-    if (type == 0 || type == 1) {
-        jboolean jCopy = false;
-        auto * buffer = (uint8_t *) env->GetByteArrayElements(data,  &jCopy);
-        env->DeleteLocalRef(data);
-        m_p_gl2_plane->gl_rgba_draw_array(type == 0, w, h,buffer);
-    } else if (type == 2) {
-        m_p_gl2_plane->update_viewport(w, h);
+void native_gl2_rgba_draw(JNIEnv *env, jobject *, jint draw_type, jint type, jint w, jint h, jbyteArray data) {
+    if (draw_type == 1){
+        if (type == 0 || type == 1) {
+            jboolean jCopy = false;
+            auto * buffer = (uint8_t *) env->GetByteArrayElements(data,  &jCopy);
+            m_p_gl2_plane->gl_rgba_draw_array(type == 0, w, h,buffer);
+        } else if (type == 2) {
+            m_p_gl2_plane->update_viewport(w, h);
+        }
+    } else if (draw_type == 2){
+        if (type == 0 || type == 1) {
+            jboolean jCopy = false;
+            auto * buffer = (uint8_t *) env->GetByteArrayElements(data,  &jCopy);
+            m_p_gl2_plane->gl_rgba_draw_elements_vbo_fbo(type == 0, w, h,buffer);
+        } else if (type == 2) {
+            m_p_gl2_plane->update_viewport(w, h);
+        }
     }
 }
 
@@ -22,7 +31,7 @@ const char *JNI_CLASS = {
 JNINativeMethod JNI_METHODS[] = {
         {
                 "native_gl2_rgba_draw",
-                "(III[B)V",
+                "(IIII[B)V",
                 (void *) native_gl2_rgba_draw
         },
 };

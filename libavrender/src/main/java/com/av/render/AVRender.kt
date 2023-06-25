@@ -8,5 +8,5 @@ class AVRender {
         }
     }
 
-    external fun native_gl2_rgba_draw(type: Int, w: Int, h: Int, bytes: ByteArray?)
+    external fun native_gl2_rgba_draw(drawType: Int, type: Int, w: Int, h: Int, bytes: ByteArray?)
 }
