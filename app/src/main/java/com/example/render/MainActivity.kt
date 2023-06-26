@@ -38,6 +38,11 @@ class MainActivity : AppCompatActivity() {
             button.text = "gl3DrawPlane_vao"
             button.setOnClickListener { gl3DrawPlane(2, findViewById(R.id.fl_root)) }
             container.addView(button)
+            // gl3draw_light
+            button = Button(baseContext)
+            button.text = "gl3DrawLight"
+            button.setOnClickListener { gl3DrawLight(2, findViewById(R.id.fl_root)) }
+            container.addView(button)
         }
     }
 
@@ -89,6 +94,33 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
                 glRender.native_gl3_rgba_draw(drawType, 2, width, height, null)
+            }
+        })
+        container.removeAllViews()
+        container.addView(glSurfaceView)
+    }
+
+    private fun gl3DrawLight(drawType: Int, container: ViewGroup) {
+        val bitmap = BitmapFactory.decodeResource(resources, R.drawable.room)
+        val length: Int = bitmap.byteCount
+        val data: ByteBuffer = ByteBuffer.allocate(length)
+        bitmap.copyPixelsToBuffer(data)
+        mByteArray.clear()
+        mByteArray.add(data.array())
+        val glRender = AVRender()
+        val glSurfaceView = GLSurfaceView(container.context)
+        glSurfaceView.setEGLContextClientVersion(3)
+        glSurfaceView.setRenderer(object : GLSurfaceView.Renderer {
+            override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+                glRender.native_gl3_light_draw(drawType, 0, bitmap.width, bitmap.height, mByteArray[0])
+            }
+
+            override fun onDrawFrame(gl: GL10?) {
+                glRender.native_gl3_light_draw(drawType, 1, bitmap.width, bitmap.height, mByteArray[0])
+            }
+
+            override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+                glRender.native_gl3_light_draw(drawType, 2, width, height, null)
             }
         })
         container.removeAllViews()
