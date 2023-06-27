@@ -6,7 +6,7 @@ void gl2Plane::update_viewport(int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void gl2Plane::gl_rgba_draw_array(bool initial, int width, int height, uint8_t *data) {
+void gl2Plane::gl_rgba_draw_array(int width, int height, uint8_t *data) {
     const char *gl_shader_vertex_source_plane = GET_CHAR(
             precision highp float;
             attribute vec4 aPosition;
@@ -41,8 +41,12 @@ void gl2Plane::gl_rgba_draw_array(bool initial, int width, int height, uint8_t *
             0.0f, 0.0f,
             1.0f, 1.0f
     };
+    if (m_r_width == 0) {
+        return;
+    }
     { // config gl_program & texture
-        if (initial) {
+        if (!initial) {
+            initial = true;
             // gl_program
             m_a_program = gl_program_create(
                     gl_shader_vertex_source_plane,
@@ -82,7 +86,7 @@ void gl2Plane::gl_rgba_draw_array(bool initial, int width, int height, uint8_t *
     }
 }
 
-void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height, uint8_t *data) {
+void gl2Plane::gl_rgba_draw_elements_vbo_fbo(int width, int height, uint8_t *data) {
     const char *gl_shader_vertex_plane_source = GET_CHAR(
             precision highp float;
             attribute vec4 aPosition;
@@ -124,8 +128,12 @@ void gl2Plane::gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height
     const int loc_indices[] = {
             0, 1, 2, 1, 3, 2
     };
+    if (m_r_width == 0) {
+        return;
+    }
     { // config gl_program & vbo & ebo & texture & fbo
-        if (initial) {
+        if (!initial) {
+            initial = true;
             // gl_program
             m_b_program[0] = gl_program_create(
                     gl_shader_vertex_plane_source,

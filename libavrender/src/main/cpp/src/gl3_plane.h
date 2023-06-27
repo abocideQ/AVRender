@@ -9,7 +9,7 @@ class gl3Plane {
 public:
     void update_viewport(int width, int height);
 
-    void gl_rgba_draw_vao_fbo_pbo_camera(bool initial, int width, int height, uint8_t *data);
+    void gl_rgba_draw_vao_fbo_pbo_camera(int width, int height, uint8_t *data);
 
 protected:
     int m_r_width, m_r_height;
@@ -19,6 +19,8 @@ protected:
     GLuint m_vao[1];
     GLuint m_texture[2];
     GLuint m_fbo;
+
+    bool initial;
 
 private:
     static GLuint gl_program_create(const char *, const char *);

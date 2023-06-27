@@ -2,7 +2,7 @@
 #include "src/common.h"
 #include "src/gl2_plane.h"
 #include "src/gl3_plane.h"
-#include "src/gl3_light.h"
+#include "src/gl3_box.h"
 #include "src/gl3_sky_box.h"
 
 auto *m_p_gl2_plane = new gl2Plane();
@@ -10,18 +10,18 @@ auto *m_p_gl2_plane = new gl2Plane();
 void native_gl2_rgba_draw(JNIEnv *env, jobject *, jint draw_type, jint type, jint w, jint h,
                           jbyteArray data) {
     if (draw_type == 1) {
-        if (type == 0 || type == 1) {
+        if (type == 1) {
             jboolean jCopy = false;
             auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
-            m_p_gl2_plane->gl_rgba_draw_array(type == 0, w, h, buffer);
+            m_p_gl2_plane->gl_rgba_draw_array(w, h, buffer);
         } else if (type == 2) {
             m_p_gl2_plane->update_viewport(w, h);
         }
     } else if (draw_type == 2) {
-        if (type == 0 || type == 1) {
+        if (type == 1) {
             jboolean jCopy = false;
             auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
-            m_p_gl2_plane->gl_rgba_draw_elements_vbo_fbo(type == 0, w, h, buffer);
+            m_p_gl2_plane->gl_rgba_draw_elements_vbo_fbo(w, h, buffer);
         } else if (type == 2) {
             m_p_gl2_plane->update_viewport(w, h);
         }
@@ -30,47 +30,27 @@ void native_gl2_rgba_draw(JNIEnv *env, jobject *, jint draw_type, jint type, jin
 
 auto *m_p_gl3_plane = new gl3Plane();
 
-void native_gl3_rgba_draw(JNIEnv *env, jobject *, jint draw_type, jint type, jint w, jint h,
+void native_gl3_rgba_draw(JNIEnv *env, jobject *, jint type, jint w, jint h,
                           jbyteArray data) {
-    if (draw_type == 1) {
-        if (type == 0 || type == 1) {
-            jboolean jCopy = false;
-            auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
-            m_p_gl3_plane->gl_rgba_draw_vao_fbo_pbo_camera(type == 0, w, h, buffer);
-        } else if (type == 2) {
-            m_p_gl3_plane->update_viewport(w, h);
-        }
-    } else if (draw_type == 2) {
-        if (type == 0 || type == 1) {
-            jboolean jCopy = false;
-            auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
-            m_p_gl3_plane->gl_rgba_draw_vao_fbo_pbo_camera(type == 0, w, h, buffer);
-        } else if (type == 2) {
-            m_p_gl3_plane->update_viewport(w, h);
-        }
+    if (type == 1) {
+        jboolean jCopy = false;
+        auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
+        m_p_gl3_plane->gl_rgba_draw_vao_fbo_pbo_camera(w, h, buffer);
+    } else if (type == 2) {
+        m_p_gl3_plane->update_viewport(w, h);
     }
 }
 
-auto *m_p_gl3_light = new gl3Light();
+auto *m_p_gl3_box = new gl3Box();
 
-void native_gl3_light_draw(JNIEnv *env, jobject *, jint draw_type, jint type, jint w, jint h,
-                          jbyteArray data) {
-    if (draw_type == 1) {
-        if (type == 0 || type == 1) {
-            jboolean jCopy = false;
-            auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
-            m_p_gl3_light->gl_light_draw(type == 0, w, h, buffer);
-        } else if (type == 2) {
-            m_p_gl3_light->update_viewport(w, h);
-        }
-    } else if (draw_type == 2) {
-        if (type == 0 || type == 1) {
-            jboolean jCopy = false;
-            auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
-            m_p_gl3_light->gl_light_draw(type == 0, w, h, buffer);
-        } else if (type == 2) {
-            m_p_gl3_light->update_viewport(w, h);
-        }
+void native_gl3_box_draw(JNIEnv *env, jobject *, jint type, jint w, jint h,
+                           jbyteArray data) {
+    if (type == 1) {
+        jboolean jCopy = false;
+        auto *buffer = (uint8_t *) env->GetByteArrayElements(data, &jCopy);
+        m_p_gl3_box->gl_box_draw_vao_fbo_camera(w, h, buffer);
+    } else if (type == 2) {
+        m_p_gl3_box->update_viewport(w, h);
     }
 }
 
@@ -86,13 +66,13 @@ JNINativeMethod JNI_METHODS[] = {
         },
         {
                 "native_gl3_rgba_draw",
-                "(IIII[B)V",
+                "(III[B)V",
                 (void *) native_gl3_rgba_draw
         },
         {
-                "native_gl3_light_draw",
-                "(IIII[B)V",
-                (void *) native_gl3_light_draw
+                "native_gl3_box_draw",
+                "(III[B)V",
+                (void *) native_gl3_box_draw
         },
 };
 

@@ -9,9 +9,9 @@ class gl2Plane {
 public:
     void update_viewport(int width, int height);
 
-    void gl_rgba_draw_array(bool initial, int width, int height, uint8_t *data);
+    void gl_rgba_draw_array(int width, int height, uint8_t *data);
 
-    void gl_rgba_draw_elements_vbo_fbo(bool initial, int width, int height, uint8_t *data);
+    void gl_rgba_draw_elements_vbo_fbo(int width, int height, uint8_t *data);
 
 protected:
     int m_r_width, m_r_height;
@@ -23,6 +23,8 @@ protected:
     GLuint m_b_vbo[3];
     GLuint m_b_texture[2];
     GLuint m_b_fbo;
+
+    bool initial;
 
 private:
     static GLuint gl_program_create(const char *, const char *);

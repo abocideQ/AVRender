@@ -1,12 +1,12 @@
-#include "gl3_light.h"
+#include "gl3_box.h"
 
-void gl3Light::update_viewport(int width, int height) {
+void gl3Box::update_viewport(int width, int height) {
     m_r_width = width;
     m_r_height = height;
     glViewport(0, 0, width, height);
 }
 
-void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data) {
+void gl3Box::gl_box_draw_vao_fbo_camera(int width, int height, uint8_t *data) {
     const char *gl_shader_vertex_plane_source =
             GL_SHADER_VERSION300
             GET_CHAR(
@@ -30,7 +30,22 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
                         fragColor = texture(TexSample, vec2(TexCoord.x, 1.0 - TexCoord.y));
                     }
             );
-    const char *gl_shader_fbo_plane_source =
+    const char *gl_shader_fbo_vex_plane_source =
+            GL_SHADER_VERSION300
+            GET_CHAR(
+                    precision highp float;
+                    layout(location = 0) in vec4 aPosition;
+                    layout(location = 1) in vec2 aTexCoord;
+                    uniform mat4 model;//模型: 世界空间
+                    uniform mat4 view; //视图: 观察空间
+                    uniform mat4 projection;//射影: 裁剪空间
+                    out vec2 TexCoord;
+                    void main() {
+                        gl_Position = projection * view * model * aPosition;
+                        TexCoord = aTexCoord;
+                    }
+            );
+    const char *gl_shader_fbo_frag_plane_source =
             GL_SHADER_VERSION300
             GET_CHAR(
                     precision highp float;
@@ -41,7 +56,7 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
                         fragColor = texture(TexSample, TexCoord);
                     }
             );
-    float loc_vertex[] = {
+    float loc_fbo[] = {
             -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
             0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
             0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
@@ -82,14 +97,30 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
             0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
             0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
             -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f
+            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
     };
+    glm::vec3 cube_pos[] = {
+            glm::vec3(0.0f, 0.0f, 0.0f),
+    };
+    float loc_screen[] = {
+            -1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+
+            -1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+    };
+    if (m_r_width == 0) {
+        return;
+    }
     { // config
-        if (initial) {
+        if (!initial) {
+            initial = true;
             // gl_program
             m_program[0] = gl_program_create(
-                    gl_shader_vertex_plane_source,
-                    gl_shader_fbo_plane_source
+                    gl_shader_fbo_vex_plane_source,
+                    gl_shader_fbo_frag_plane_source
             );
             m_program[1] = gl_program_create(
                     gl_shader_vertex_plane_source,
@@ -97,18 +128,32 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
             );
             gl_check(__LINE__);
             if (m_program[0] == GL_NONE || m_program[1] == GL_NONE) return;
-            // vbo & ebo & vao
-            glGenVertexArrays(1, m_vao);
-            glGenBuffers(3, m_vbo);
+            // fbo: vbo & vao
+            glGenVertexArrays(2, m_vao);
+            glGenBuffers(4, m_vbo);
             glBindVertexArray(m_vao[0]);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof loc_vertex, loc_vertex, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof loc_fbo, loc_fbo, GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof loc_vertex, loc_vertex, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof loc_fbo, loc_fbo, GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
                                   (void *) nullptr);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
+                                  (void *) (3 * sizeof(float)));
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+            // screen: vbo & vao
+            glBindVertexArray(m_vao[1]);
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof loc_screen, loc_screen, GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo[3]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof loc_screen, loc_screen, GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
+                                  (void *) nullptr);
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo[3]);
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
                                   (void *) (3 * sizeof(float)));
             glEnableVertexAttribArray(0);
@@ -126,7 +171,7 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
                          0, GL_RGBA, GL_UNSIGNED_BYTE, data);
             glBindTexture(GL_TEXTURE_2D, m_texture[1]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_r_width, m_r_height,
                          0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
             // fbo
             glGenFramebuffers(1, &m_fbo);
@@ -134,12 +179,18 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
             glBindTexture(GL_TEXTURE_2D, m_texture[1]);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                                    m_texture[1], 0);
+            // fbo.rbo
+            glGenRenderbuffers(1, &m_fbo_rbo);
+            glBindRenderbuffer(GL_RENDERBUFFER, m_fbo_rbo);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_r_width, m_r_height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
+                                      m_fbo_rbo);
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                LOGE("fbo != GL_FRAMEBUFFER_COMPLETE %d", __LINE__);
+            }
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
         gl_check(__LINE__);
-    }
-    {
-        glEnable(GL_DEPTH_TEST);
     }
     { // offscreen draw
         { // use gl_program
@@ -154,22 +205,52 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
             GLint tex_sample_index = glGetUniformLocation(m_program[0], "TexSample");
             glUniform1i(tex_sample_index, 0);
         }
+        { // Camera
+            m_rotation++;
+            // model(world)
+            glm::mat4 model = glm::mat4(1.0);
+            model = glm::translate(model, cube_pos[0]);
+            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(1.0, 1.0, 1.0));
+            auto model_index = glGetUniformLocation(m_program[0], "model");
+            glUniformMatrix4fv(model_index, 1, GL_FALSE, glm::value_ptr(model));
+            // view(camera)
+            glm::mat4 view = glm::mat4(1.0);
+            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+            view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));
+            auto view_index = glGetUniformLocation(m_program[0], "view");
+            glUniformMatrix4fv(view_index, 1, GL_FALSE, glm::value_ptr(view));
+            // projection(crop)
+            glm::mat4 proj = glm::mat4(1.0);
+            proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
+            auto proj_index = glGetUniformLocation(m_program[0], "projection");
+            glUniformMatrix4fv(proj_index, 1, GL_FALSE, glm::value_ptr(proj));
+            // lookAt
+            /*glm::mat4 lookAt = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+                                         glm::vec3(0.0f, 0.0f, 0.0f),
+                                         glm::vec3(0.0f, 1.0f, 0.0f));
+            auto lookAtMat4 = glGetUniformLocation(m_program[0], "aCamera");
+            glUniformMatrix4fv(lookAtMat4, 1, GL_FALSE, glm::value_ptr(lookAt));*/
+        }
         { // draw
             glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-            glViewport(0, 0, m_r_width, m_r_height);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_DEPTH_TEST);
             glDrawArrays(GL_TRIANGLES, 0, 36);
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                LOGE("fbo != GL_FRAMEBUFFER_COMPLETE %d", __LINE__);
+            }
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
         gl_check(__LINE__);
     }
     { // onscreen draw
-//        glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//        glClearColor(1.0, 1.0, 1.0, 1.0);
         { // use program
             glUseProgram(m_program[1]);
         }
         { // vao
-            glBindVertexArray(m_vao[0]);
+            glBindVertexArray(m_vao[1]);
         }
         { // texture
             glActiveTexture(GL_TEXTURE0);
@@ -178,14 +259,15 @@ void gl3Light::gl_light_draw(bool initial, int width, int height, uint8_t *data)
             glUniform1i(sample_tex_index, 0);
         }
         { // draw
-            glViewport(0, 0, m_r_width, m_r_height);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         }
         gl_check(__LINE__);
     }
 }
 
-GLuint gl3Light::gl_program_create(const char *vertex, const char *fragment) {
+GLuint gl3Box::gl_program_create(const char *vertex, const char *fragment) {
     GLuint gl_program = glCreateProgram();
     { // program attach & link & delete shader
         GLuint gl_shader_vertex = gl_shader_create(GL_VERTEX_SHADER, vertex);
@@ -218,7 +300,7 @@ GLuint gl3Light::gl_program_create(const char *vertex, const char *fragment) {
     return gl_program;
 }
 
-GLuint gl3Light::gl_shader_create(GLenum gl_type, const char *gl_source) {
+GLuint gl3Box::gl_shader_create(GLenum gl_type, const char *gl_source) {
     GLuint gl_shader = glCreateShader(gl_type);
     { // shader compile
         glShaderSource(gl_shader, 1, &gl_source, nullptr);
@@ -247,7 +329,7 @@ GLuint gl3Light::gl_shader_create(GLenum gl_type, const char *gl_source) {
     return gl_shader;
 }
 
-void gl3Light::gl_check(int line) {
+void gl3Box::gl_check(int line) {
     GLenum err = glGetError();
     if (!err) return;
     LOGE("gl_check error=%d, line=%d", glGetError(), line);

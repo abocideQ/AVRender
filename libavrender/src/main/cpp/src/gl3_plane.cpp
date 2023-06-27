@@ -6,7 +6,7 @@ void gl3Plane::update_viewport(int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-void gl3Plane::gl_rgba_draw_vao_fbo_pbo_camera(bool initial, int width, int height, uint8_t *data) {
+void gl3Plane::gl_rgba_draw_vao_fbo_pbo_camera(int width, int height, uint8_t *data) {
     const char *gl_shader_vertex_plane_source =
             GL_SHADER_VERSION300
             GET_CHAR(
@@ -56,8 +56,12 @@ void gl3Plane::gl_rgba_draw_vao_fbo_pbo_camera(bool initial, int width, int heig
     const int loc_indices[] = {
             0, 1, 2, 1, 3, 2
     };
+    if (m_r_width == 0) {
+        return;
+    }
     { // config
-        if (initial) {
+        if (!initial) {
+            initial = true;
             // gl_program
             m_program[0] = gl_program_create(
                     gl_shader_vertex_plane_source,
