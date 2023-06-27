@@ -13,4 +13,6 @@ class AVRender {
     external fun native_gl3_rgba_draw(type: Int, w: Int, h: Int, bytes: ByteArray?)
 
     external fun native_gl3_box_draw(type: Int, w: Int, h: Int, bytes: ByteArray?)
+
+    external fun native_gl3_light_draw(type: Int, w: Int, h: Int, bytes: ByteArray?)
 }

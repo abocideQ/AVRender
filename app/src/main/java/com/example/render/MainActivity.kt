@@ -38,10 +38,15 @@ class MainActivity : AppCompatActivity() {
             button.text = "gl3DrawPlane_vao"
             button.setOnClickListener { gl3DrawPlane(findViewById(R.id.fl_root)) }
             container.addView(button)
+            // gl3draw_box
+            button = Button(baseContext)
+            button.text = "gl3DrawBox"
+            button.setOnClickListener { gl3DrawBox(findViewById(R.id.fl_root)) }
+            container.addView(button)
             // gl3draw_light
             button = Button(baseContext)
             button.text = "gl3DrawLight"
-            button.setOnClickListener { gl3DrawBox(findViewById(R.id.fl_root)) }
+            button.setOnClickListener { gl3DrawLight(findViewById(R.id.fl_root)) }
             container.addView(button)
         }
     }
@@ -124,6 +129,32 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
                 glRender.native_gl3_box_draw(2, width, height, null)
+            }
+        })
+        container.removeAllViews()
+        container.addView(glSurfaceView)
+    }
+
+    private fun gl3DrawLight(container: ViewGroup) {
+        val bitmap = BitmapFactory.decodeResource(resources, R.drawable.desk)
+        val length: Int = bitmap.byteCount
+        val data: ByteBuffer = ByteBuffer.allocate(length)
+        bitmap.copyPixelsToBuffer(data)
+        mByteArray.clear()
+        mByteArray.add(data.array())
+        val glRender = AVRender()
+        val glSurfaceView = GLSurfaceView(container.context)
+        glSurfaceView.setEGLContextClientVersion(3)
+        glSurfaceView.setRenderer(object : GLSurfaceView.Renderer {
+            override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            }
+
+            override fun onDrawFrame(gl: GL10?) {
+                glRender.native_gl3_light_draw(1, bitmap.width, bitmap.height, mByteArray[0])
+            }
+
+            override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+                glRender.native_gl3_light_draw(2, width, height, null)
             }
         })
         container.removeAllViews()

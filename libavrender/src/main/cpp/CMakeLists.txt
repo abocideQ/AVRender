@@ -12,6 +12,7 @@ set(SOURCE_CPP
         ${CMAKE_SOURCE_DIR}/src/gl2_plane.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_plane.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_box.cpp
+        ${CMAKE_SOURCE_DIR}/src/gl3_light.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_sky_box.cpp)
 include_directories(${SOURCE_HEAD})
 add_library(avrender
