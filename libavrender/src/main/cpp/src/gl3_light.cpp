@@ -59,31 +59,39 @@ void gl3Light::gl_light_draw_vao_fbo_camera(int width, int height, uint8_t *data
                     in vec2 TexCoord;
                     in vec3 Normal;
                     in vec3 FragPos;
-//                    uniform vec3 lightColor;
-//                    uniform vec3 lightPos;
-//                    uniform vec3 lightColor;
+                    uniform vec3 ambientLightColor;
+                    uniform vec3 diffuseLightPos;
+                    uniform vec3 diffuseLightColor;
+                    uniform vec3 specularLightPos;
+                    uniform vec3 specularLightColor;
+                    uniform vec3 specularCameraPos;
                     uniform sampler2D TexSample;
                     layout(location = 0) out vec4 fragColor;
                     void main() {
-                        vec3 lightPos = vec3(1.0f, 1.0f, 3.0f);
-                        vec3 lightColor = vec3(1.0, 1.0, 1.0);
                         // ambient
                         float ambientStrength = 0.1;
-                        vec3 ambient = vec3(ambientStrength) * lightColor;
+                        vec3 ambient = vec3(ambientStrength) * ambientLightColor;
                         // diffuse
-                        vec3 norm = normalize(Normal);
-                        vec3 lightDir = normalize(lightPos - FragPos);
-                        float diff = max(dot(norm, lightDir), 0.0);
-                        vec3 diffuse = vec3(diff) * lightColor;
+                        float diffuseStrength = 0.8;
+                        vec3 diffuseLightDir = normalize(diffuseLightPos - FragPos);
+                        float diffuseDiff = max(dot(normalize(Normal), diffuseLightDir), 0.0);
+                        vec3 diffuse = vec3(diffuseStrength) *
+                                       vec3(diffuseDiff) *
+                                       diffuseLightColor;
                         // specular
-//                        float specularStrength = 0.5;
-//                        vec3 viewDir = normalize(viewPos - FragPos);
-//                        vec3 reflectDir = reflect(-lightDir, norm);
-//                        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-//                        vec3 specular = vec3(specularStrength) * vec3(spec) * lightColor;
+                        float specularStrength = 1.0;
+                        vec3 specularCameraDir = normalize(specularCameraPos - FragPos);
+                        vec3 specularLightDir = normalize(specularLightPos - FragPos);
+                        vec3 specularLightReflect = reflect(-specularLightDir, normalize(Normal));
+                        float specularDiff = 1.0;
+                        float a = max(dot(specularCameraDir, specularLightReflect), 0.0);
+                        for (int i = 0; i < 32; i++) {
+                            specularDiff *= a;
+                        }
+                        vec3 specular = specularStrength * specularDiff * specularLightColor;
                         // fragColor
                         fragColor = texture(TexSample, TexCoord) *
-                                    vec4(ambient + diffuse, 1.0);
+                                    vec4(ambient + diffuse + specular, 1.0);
                     }
             );
     float loc_fbo[] = {
@@ -247,7 +255,7 @@ void gl3Light::gl_light_draw_vao_fbo_camera(int width, int height, uint8_t *data
             // model(world)
             glm::mat4 model = glm::mat4(1.0);
             model = glm::translate(model, cube_pos[0]);
-            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
             model = glm::scale(model, glm::vec3(0.9, 0.9, 0.9));
             auto model_index = glGetUniformLocation(m_program[0], "model");
             glUniformMatrix4fv(model_index, 1, GL_FALSE, glm::value_ptr(model));
@@ -262,6 +270,26 @@ void gl3Light::gl_light_draw_vao_fbo_camera(int width, int height, uint8_t *data
             proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
             auto proj_index = glGetUniformLocation(m_program[0], "projection");
             glUniformMatrix4fv(proj_index, 1, GL_FALSE, glm::value_ptr(proj));
+        }
+        { // Light
+            glm::vec3 ambientLightColor = glm::vec3(1.0, 1.0, 1.0);
+            glm::vec3 diffuseLightPos = glm::vec3(0.0, 0.0, 3.0);
+            glm::vec3 diffuseLightColor = glm::vec3(1.0, 1.0, 1.0);
+            glm::vec3 specularLightPos = glm::vec3(0.0, 0.0, 3.0);
+            glm::vec3 specularLightColor = glm::vec3(1.0, 1.0, 1.0);
+            glm::vec3 specularCameraPos = glm::vec3(0.0, 0.0, 3.0);
+            auto ambientLightColor_i = glGetUniformLocation(m_program[0], "ambientLightColor");
+            auto diffuseLightPos_i = glGetUniformLocation(m_program[0], "diffuseLightPos");
+            auto diffuseLightColor_i = glGetUniformLocation(m_program[0], "diffuseLightColor");
+            auto specularLightPos_i = glGetUniformLocation(m_program[0], "specularLightPos");
+            auto specularLightColor_i = glGetUniformLocation(m_program[0], "specularLightColor");
+            auto specularCameraPos_i = glGetUniformLocation(m_program[0], "specularCameraPos");
+            glUniform3fv(ambientLightColor_i, 1, glm::value_ptr(ambientLightColor));
+            glUniform3fv(diffuseLightPos_i, 1, glm::value_ptr(diffuseLightPos));
+            glUniform3fv(diffuseLightColor_i, 1, glm::value_ptr(diffuseLightColor));
+            glUniform3fv(specularLightPos_i, 1, glm::value_ptr(specularLightPos));
+            glUniform3fv(specularLightColor_i, 1, glm::value_ptr(specularLightColor));
+            glUniform3fv(specularCameraPos_i, 1, glm::value_ptr(specularCameraPos));
         }
         { // draw
             glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
