@@ -41,10 +41,15 @@ void gl3Light::gl_light_draw_vao_fbo_camera(int width, int height, uint8_t *data
                     uniform mat4 view; //视图: 观察空间
                     uniform mat4 projection;//射影: 裁剪空间
                     out vec2 TexCoord;
+                    out vec3 FragPos;
                     out vec3 Normal;
                     void main() {
-                        gl_Position = projection * view * model * aPosition;
+                        // texture & light
                         TexCoord = aTexCoord;
+                        FragPos = vec3(model * aPosition);
+                        Normal = mat3(transpose(inverse(model))) * aNormal;
+                        // gl_pos
+                        gl_Position = projection * view * model * aPosition;
                     }
             );
     const char *gl_shader_fbo_frag_plane_source =
@@ -53,13 +58,32 @@ void gl3Light::gl_light_draw_vao_fbo_camera(int width, int height, uint8_t *data
                     precision highp float;
                     in vec2 TexCoord;
                     in vec3 Normal;
+                    in vec3 FragPos;
+//                    uniform vec3 lightColor;
+//                    uniform vec3 lightPos;
+//                    uniform vec3 lightColor;
                     uniform sampler2D TexSample;
-                    uniform vec3 lightPos;
                     layout(location = 0) out vec4 fragColor;
                     void main() {
-//                        vec3 norm = normalize(Normal);
-//                        vec3 lightDir = normalize(lightPos - FragPos);
-                        fragColor = texture(TexSample, TexCoord);
+                        vec3 lightPos = vec3(1.0f, 1.0f, 3.0f);
+                        vec3 lightColor = vec3(1.0, 1.0, 1.0);
+                        // ambient
+                        float ambientStrength = 0.1;
+                        vec3 ambient = vec3(ambientStrength) * lightColor;
+                        // diffuse
+                        vec3 norm = normalize(Normal);
+                        vec3 lightDir = normalize(lightPos - FragPos);
+                        float diff = max(dot(norm, lightDir), 0.0);
+                        vec3 diffuse = vec3(diff) * lightColor;
+                        // specular
+//                        float specularStrength = 0.5;
+//                        vec3 viewDir = normalize(viewPos - FragPos);
+//                        vec3 reflectDir = reflect(-lightDir, norm);
+//                        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+//                        vec3 specular = vec3(specularStrength) * vec3(spec) * lightColor;
+                        // fragColor
+                        fragColor = texture(TexSample, TexCoord) *
+                                    vec4(ambient + diffuse, 1.0);
                     }
             );
     float loc_fbo[] = {
@@ -219,18 +243,18 @@ void gl3Light::gl_light_draw_vao_fbo_camera(int width, int height, uint8_t *data
             glUniform1i(tex_sample_index, 0);
         }
         { // Camera
-            m_rotation += 0.1f;
+            m_rotation += 0.5;
             // model(world)
             glm::mat4 model = glm::mat4(1.0);
             model = glm::translate(model, cube_pos[0]);
-            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));
             model = glm::scale(model, glm::vec3(0.9, 0.9, 0.9));
             auto model_index = glGetUniformLocation(m_program[0], "model");
             glUniformMatrix4fv(model_index, 1, GL_FALSE, glm::value_ptr(model));
             // view(camera)
             glm::mat4 view = glm::mat4(1.0);
             view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-            view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));
+            /*view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));*/
             auto view_index = glGetUniformLocation(m_program[0], "view");
             glUniformMatrix4fv(view_index, 1, GL_FALSE, glm::value_ptr(view));
             // projection(crop)
