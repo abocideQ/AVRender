@@ -48,6 +48,11 @@ class MainActivity : AppCompatActivity() {
             button.text = "gl3DrawLight"
             button.setOnClickListener { gl3DrawLight(findViewById(R.id.fl_root)) }
             container.addView(button)
+            // gl3draw_sky_box
+            button = Button(baseContext)
+            button.text = "gl3DrawSkyBox"
+            button.setOnClickListener { gl3DrawSkyBox(findViewById(R.id.fl_root)) }
+            container.addView(button)
         }
     }
 
@@ -155,6 +160,69 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
                 glRender.native_gl3_light_draw(2, width, height, null)
+            }
+        })
+        container.removeAllViews()
+        container.addView(glSurfaceView)
+    }
+
+    private fun gl3DrawSkyBox(container: ViewGroup) {
+        val bitmaps = arrayOf(
+            R.drawable.desk,
+            R.drawable.sky_bottom,
+        )
+        var width = 0
+        var height = 0
+        var sky_w = 0
+        var sky_h = 0
+        mByteArray.clear()
+        for (i in bitmaps.indices) {
+            val bitmap = BitmapFactory.decodeResource(resources, bitmaps[i])
+            if (i == 0) {
+                width = bitmap.width
+                height = bitmap.height
+            } else {
+                sky_w = bitmap.width
+                sky_h = bitmap.width
+            }
+            val data: ByteBuffer = ByteBuffer.allocate(bitmap.byteCount)
+            bitmap.copyPixelsToBuffer(data)
+            mByteArray.add(data.array())
+            bitmap.recycle()
+            System.gc()
+            data.clear()
+        }
+        val glRender = AVRender()
+        val glSurfaceView = GLSurfaceView(container.context)
+        glSurfaceView.setEGLContextClientVersion(3)
+        glSurfaceView.setRenderer(object : GLSurfaceView.Renderer {
+            override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            }
+
+            override fun onDrawFrame(gl: GL10?) {
+                glRender.native_gl3_sky_box_draw(
+                    1, width, height, mByteArray[0],
+                    sky_w, sky_h,
+                    mByteArray[1],
+                    mByteArray[1],
+                    mByteArray[1],
+                    mByteArray[1],
+                    mByteArray[1],
+                    mByteArray[1]
+                )
+            }
+
+            override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+                glRender.native_gl3_sky_box_draw(
+                    2, width, height, null,
+                    0, 0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                )
             }
         })
         container.removeAllViews()
