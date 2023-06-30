@@ -1,19 +1,16 @@
 #include "gl3_sky_box.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include "stb_image.h"
+
 void gl3SkyBox::update_viewport(int width, int height) {
     m_r_width = width;
     m_r_height = height;
     glViewport(0, 0, width, height);
 }
 
-void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
-                           int sky_w, int sky_h,
-                           uint8_t *sky_right,
-                           uint8_t *sky_left,
-                           uint8_t *sky_top,
-                           uint8_t *sky_bottom,
-                           uint8_t *sky_front,
-                           uint8_t *sky_back) {
+void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data) {
     const char *gl_shader_vertex_plane_source =
             GL_SHADER_VERSION300
             GET_CHAR(
@@ -47,12 +44,10 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
                     uniform mat4 model;//模型: 世界空间
                     uniform mat4 view; //视图: 观察空间
                     uniform mat4 projection;//射影: 裁剪空间
-                    out vec2 TexCoord;
                     out vec3 FragPos;
                     out vec3 Normal;
                     void main() {
                         // texture & light
-                        TexCoord = aTexCoord;
                         FragPos = vec3(model * aPosition);
                         Normal = mat3(transpose(inverse(model))) * aNormal;
                         // gl_pos
@@ -63,7 +58,6 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
             GL_SHADER_VERSION300
             GET_CHAR(
                     precision highp float;
-                    in vec2 TexCoord;
                     in vec3 Normal;
                     in vec3 FragPos;
                     uniform vec3 ambientLightColor;
@@ -72,14 +66,15 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
                     uniform vec3 specularLightPos;
                     uniform vec3 specularLightColor;
                     uniform vec3 specularCameraPos;
-                    uniform sampler2D TexSample;
+                    uniform vec3 ViewPos;
+                    uniform samplerCube TexSampleCube;
                     layout(location = 0) out vec4 fragColor;
                     void main() {
                         // ambient
-                        float ambientStrength = 0.1;
+                        float ambientStrength = 1.0;
                         vec3 ambient = vec3(ambientStrength) * ambientLightColor;
                         // diffuse
-                        float diffuseStrength = 0.8;
+                        float diffuseStrength = 1.0;
                         vec3 diffuseLightDir = normalize(diffuseLightPos - FragPos);
                         float diffuseDiff = max(dot(normalize(Normal), diffuseLightDir), 0.0);
                         vec3 diffuse = vec3(diffuseStrength) *
@@ -97,7 +92,9 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
                         }
                         vec3 specular = specularStrength * specularDiff * specularLightColor;
                         // fragColor
-                        fragColor = texture(TexSample, TexCoord) *
+                        vec3 I = normalize(vec3(-1.0 * FragPos.x, FragPos.y, -1.0 * FragPos.z) - ViewPos);
+                        vec3 R = reflect(I, normalize(Normal));
+                        fragColor = texture(TexSampleCube, R) *
                                     vec4(ambient + diffuse + specular, 1.0);
                     }
             );
@@ -306,22 +303,29 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
             glBindTexture(GL_TEXTURE_2D, m_texture[1]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_r_width, m_r_height,
                          0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            // sky: texture
+            // sky: texture /storage/emulated/0/Android/obb/com.example.render/asset
             glGenTextures(1, &m_texture_sky);
             glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_sky);
-            int i = 0;
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, sky_w, sky_h,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, sky_left);
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, sky_w, sky_h,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, sky_right);
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, sky_w, sky_h,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, sky_top);
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, sky_w, sky_h,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, sky_bottom);
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, sky_w, sky_h,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, sky_front);
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i++, 0, GL_RGBA, sky_w, sky_h,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, sky_back);
+            std::string sky_box[6] = {
+                    "/storage/emulated/0/Android/obb/com.example.render/asset/sky_right.jpg",
+                    "/storage/emulated/0/Android/obb/com.example.render/asset/sky_left.jpg",
+                    "/storage/emulated/0/Android/obb/com.example.render/asset/sky_top.jpg",
+                    "/storage/emulated/0/Android/obb/com.example.render/asset/sky_bottom.jpg",
+                    "/storage/emulated/0/Android/obb/com.example.render/asset/sky_front.jpg",
+                    "/storage/emulated/0/Android/obb/com.example.render/asset/sky_back.jpg",
+            };
+            int sky_w, sky_h, nrChannels;
+            for (int i = 0; i < 6; ++i) {
+                unsigned char *sky_ch = stbi_load(sky_box[i].c_str(), &sky_w, &sky_h, &nrChannels,
+                                                  0);
+                if (!sky_ch) {
+                    LOGE("stbi_load fail......");
+                    continue;
+                }
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, sky_w, sky_h,
+                             0, GL_RGB, GL_UNSIGNED_BYTE, sky_ch);
+                stbi_image_free(sky_ch);
+            }
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -346,54 +350,8 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
         }
         gl_check(__LINE__);
     }
-    { // offscreen draw sky
-        { // use program
-            glUseProgram(m_program_sky);
-        }
-        gl_check(__LINE__);
-        { // vao
-            glBindVertexArray(m_vao_sky);
-        }
-        gl_check(__LINE__);
-        { // texture
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_sky);
-            GLint tex_sample_index = glGetUniformLocation(m_program_sky, "TexSample");
-            glUniform1i(tex_sample_index, 0);
-        }
-        gl_check(__LINE__);
-        {
-            m_rotation++;
-            // view(camera)
-            glm::mat4 view = glm::mat4(1.0);
-            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
-            view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
-            auto view_index = glGetUniformLocation(m_program_sky, "view");
-            glUniformMatrix4fv(view_index, 1, GL_FALSE, glm::value_ptr(view));
-            // projection(crop)
-            glm::mat4 proj = glm::mat4(1.0);
-            proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
-            auto proj_index = glGetUniformLocation(m_program_sky, "projection");
-            glUniformMatrix4fv(proj_index, 1, GL_FALSE, glm::value_ptr(proj));
-        }
-        gl_check(__LINE__);
-        { // draw
-            glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LEQUAL);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-            glDisable(GL_DEPTH_TEST);
-            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-                LOGE("fbo != GL_FRAMEBUFFER_COMPLETE %d", __LINE__);
-            }
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-        gl_check(__LINE__);
-    }
     { // offscreen draw box
-/*        { // use gl_program
+        { // use gl_program
             glUseProgram(m_program[0]);
         }
         { // vao
@@ -406,18 +364,18 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
             glUniform1i(tex_sample_index, 0);
         }
         { // Camera
-            m_rotation += 0.5;
+            m_rotation += 0.2;
             // model(world)
             glm::mat4 model = glm::mat4(1.0);
             model = glm::translate(model, cube_pos[0]);
-            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
-            model = glm::scale(model, glm::vec3(0.9, 0.9, 0.9));
+            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
             auto model_index = glGetUniformLocation(m_program[0], "model");
             glUniformMatrix4fv(model_index, 1, GL_FALSE, glm::value_ptr(model));
             // view(camera)
             glm::mat4 view = glm::mat4(1.0);
             view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-            *//*view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));*//*
+            /*view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));*/
             auto view_index = glGetUniformLocation(m_program[0], "view");
             glUniformMatrix4fv(view_index, 1, GL_FALSE, glm::value_ptr(view));
             // projection(crop)
@@ -446,6 +404,14 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
             glUniform3fv(specularLightColor_i, 1, glm::value_ptr(specularLightColor));
             glUniform3fv(specularCameraPos_i, 1, glm::value_ptr(specularCameraPos));
         }
+        { // Reflect
+            glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, -3.0f);
+            auto viewPos_idx = glGetUniformLocation(m_program[0], "ViewPos");
+            glUniformMatrix4fv(viewPos_idx, 1, GL_FALSE, glm::value_ptr(viewPos));
+            glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_sky);
+            GLint tex_sample_idx = glGetUniformLocation(m_program[0], "TexSampleCube");
+            glUniform1i(tex_sample_idx, 0);
+        }
         { // draw
             glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -458,7 +424,57 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
             }
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
-        gl_check(__LINE__);*/
+        gl_check(__LINE__);
+    }
+    { // offscreen draw sky
+        { // use program
+            glUseProgram(m_program_sky);
+        }
+        gl_check(__LINE__);
+        { // vao
+            glBindVertexArray(m_vao_sky);
+        }
+        gl_check(__LINE__);
+        { // texture
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture_sky);
+            GLint tex_sample_index = glGetUniformLocation(m_program_sky, "TexSample");
+            glUniform1i(tex_sample_index, 0);
+        }
+        gl_check(__LINE__);
+        {
+            // view(camera)
+            glm::mat4 view = glm::mat4(1.0);
+            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+            /*view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));*/
+            auto view_index = glGetUniformLocation(m_program_sky, "view");
+            glUniformMatrix4fv(view_index,
+                               1, GL_FALSE,
+                               glm::value_ptr(view)
+            );
+            // projection(crop)
+            glm::mat4 proj = glm::mat4(1.0);
+            proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
+            auto proj_index = glGetUniformLocation(m_program_sky, "projection");
+            glUniformMatrix4fv(proj_index,
+                               1, GL_FALSE,
+                               glm::value_ptr(proj)
+            );
+        }
+        gl_check(__LINE__);
+        { // draw
+            glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+            glDepthFunc(GL_LEQUAL);
+            glEnable(GL_DEPTH_TEST);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glDisable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                LOGE("fbo != GL_FRAMEBUFFER_COMPLETE %d", __LINE__);
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        gl_check(__LINE__);
     }
     { // onscreen draw
         { // use program
@@ -471,7 +487,8 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data,
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, m_texture[1]);
             GLint sample_tex_index = glGetUniformLocation(m_program[1], "TexSample");
-            glUniform1i(sample_tex_index, 0);
+            glUniform1i(sample_tex_index,
+                        0);
         }
         { // draw
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

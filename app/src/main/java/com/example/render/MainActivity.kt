@@ -1,5 +1,6 @@
 package com.example.render
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import android.opengl.GLSurfaceView
@@ -21,6 +22,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        run {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ), 100
+            )
+        }
         run {
             val container: LinearLayout = findViewById(R.id.ll_button)
             // gl2draw
@@ -167,23 +176,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun gl3DrawSkyBox(container: ViewGroup) {
+        AssetUtils.asset2cache(baseContext, "sky_right.jpg")
+        AssetUtils.asset2cache(baseContext, "sky_left.jpg")
+        AssetUtils.asset2cache(baseContext, "sky_top.jpg")
+        AssetUtils.asset2cache(baseContext, "sky_bottom.jpg")
+        AssetUtils.asset2cache(baseContext, "sky_front.jpg")
+        AssetUtils.asset2cache(baseContext, "sky_back.jpg")
         val bitmaps = arrayOf(
             R.drawable.desk,
             R.drawable.sky_bottom,
         )
         var width = 0
         var height = 0
-        var sky_w = 0
-        var sky_h = 0
         mByteArray.clear()
         for (i in bitmaps.indices) {
             val bitmap = BitmapFactory.decodeResource(resources, bitmaps[i])
             if (i == 0) {
                 width = bitmap.width
                 height = bitmap.height
-            } else {
-                sky_w = bitmap.width
-                sky_h = bitmap.width
             }
             val data: ByteBuffer = ByteBuffer.allocate(bitmap.byteCount)
             bitmap.copyPixelsToBuffer(data)
@@ -200,29 +210,11 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onDrawFrame(gl: GL10?) {
-                glRender.native_gl3_sky_box_draw(
-                    1, width, height, mByteArray[0],
-                    sky_w, sky_h,
-                    mByteArray[1],
-                    mByteArray[1],
-                    mByteArray[1],
-                    mByteArray[1],
-                    mByteArray[1],
-                    mByteArray[1]
-                )
+                glRender.native_gl3_sky_box_draw(1, width, height, mByteArray[0])
             }
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-                glRender.native_gl3_sky_box_draw(
-                    2, width, height, null,
-                    0, 0,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-                )
+                glRender.native_gl3_sky_box_draw(2, width, height, null)
             }
         })
         container.removeAllViews()

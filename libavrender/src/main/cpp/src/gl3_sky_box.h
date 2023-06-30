@@ -12,15 +12,7 @@ class gl3SkyBox {
 public:
     void update_viewport(int width, int height);
 
-    void gl_sky_box(int width, int height, uint8_t *data,
-                    int sky_w, int sky_h,
-                    uint8_t *sky_right,
-                    uint8_t *sky_left,
-                    uint8_t *sky_top,
-                    uint8_t *sky_bottom,
-                    uint8_t *sky_front,
-                    uint8_t *sky_back
-    );
+    void gl_sky_box(int width, int height, uint8_t *data);
 
 protected:
     int m_r_width, m_r_height;

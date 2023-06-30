@@ -70,25 +70,10 @@ void native_gl3_light_draw(JNIEnv *env, jobject *, jint type, jint w, jint h,
 
 auto *m_p_gl3_sky = new gl3SkyBox();
 
-void native_gl3_sky_box_draw(JNIEnv *env, jobject *, jint type, jint w, jint h, jbyteArray data,
-                             jint sky_width, jint sky_height,
-                             jbyteArray sky_right,
-                             jbyteArray sky_left,
-                             jbyteArray sky_top,
-                             jbyteArray sky_bottom,
-                             jbyteArray sky_front,
-                             jbyteArray sky_back) {
+void native_gl3_sky_box_draw(JNIEnv *env, jobject *, jint type, jint w, jint h, jbyteArray data) {
     if (type == 1) {
         jboolean jCopy = false;
-        m_p_gl3_sky->gl_sky_box(w, h,
-                                (uint8_t *) env->GetByteArrayElements(data, &jCopy),
-                                sky_width, sky_height,
-                                (uint8_t *) env->GetByteArrayElements(sky_right, &jCopy),
-                                (uint8_t *) env->GetByteArrayElements(sky_left, &jCopy),
-                                (uint8_t *) env->GetByteArrayElements(sky_top, &jCopy),
-                                (uint8_t *) env->GetByteArrayElements(sky_bottom, &jCopy),
-                                (uint8_t *) env->GetByteArrayElements(sky_front, &jCopy),
-                                (uint8_t *) env->GetByteArrayElements(sky_back, &jCopy));
+        m_p_gl3_sky->gl_sky_box(w, h, (uint8_t *) env->GetByteArrayElements(data, &jCopy));
     } else if (type == 2) {
         m_p_gl3_sky->update_viewport(w, h);
     }
@@ -121,7 +106,7 @@ JNINativeMethod JNI_METHODS[] = {
         },
         {
                 "native_gl3_sky_box_draw",
-                "(III[BII[B[B[B[B[B[B)V",
+                "(III[B)V",
                 (void *) native_gl3_sky_box_draw
         },
 };
