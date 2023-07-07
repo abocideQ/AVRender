@@ -379,8 +379,9 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data) {
             auto view_index = glGetUniformLocation(m_program[0], "view");
             glUniformMatrix4fv(view_index, 1, GL_FALSE, glm::value_ptr(view));
             // projection(crop)
+            float aspect = (float) m_r_width / (float) m_r_height;
             glm::mat4 proj = glm::mat4(1.0);
-            proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
+            proj = glm::perspective(glm::radians(45.0f), aspect, 1.0f, 1000.0f);
             auto proj_index = glGetUniformLocation(m_program[0], "projection");
             glUniformMatrix4fv(proj_index, 1, GL_FALSE, glm::value_ptr(proj));
         }
@@ -446,15 +447,16 @@ void gl3SkyBox::gl_sky_box(int width, int height, uint8_t *data) {
             // view(camera)
             glm::mat4 view = glm::mat4(1.0);
             view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
-            /*view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));*/
+            view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
             auto view_index = glGetUniformLocation(m_program_sky, "view");
             glUniformMatrix4fv(view_index,
                                1, GL_FALSE,
                                glm::value_ptr(view)
             );
             // projection(crop)
+            float aspect = (float) m_r_width / (float) m_r_height;
             glm::mat4 proj = glm::mat4(1.0);
-            proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
+            proj = glm::perspective(glm::radians(45.0f), aspect, 1.0f, 1000.0f);
             auto proj_index = glGetUniformLocation(m_program_sky, "projection");
             glUniformMatrix4fv(proj_index,
                                1, GL_FALSE,

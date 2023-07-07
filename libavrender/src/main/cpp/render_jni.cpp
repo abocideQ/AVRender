@@ -5,6 +5,7 @@
 #include "src/gl3_box.h"
 #include "src/gl3_light.h"
 #include "src/gl3_sky_box.h"
+#include "src/gl3_mode_obj.h"
 
 auto *m_p_gl2_plane = new gl2Plane();
 
@@ -79,6 +80,27 @@ void native_gl3_sky_box_draw(JNIEnv *env, jobject *, jint type, jint w, jint h, 
     }
 }
 
+auto *m_p_gl3_mode = new gl3ModeObj();
+
+void native_gl3_mode_obj_draw(JNIEnv *env, jobject *,
+                              jint type,
+                              jint w, jint h,
+                              jstring mode_path,
+                              jstring texture_path) {
+    if (type == 1) {
+        jboolean jCopy = false;
+        auto *mode_path_ch = env->GetStringUTFChars(mode_path, &jCopy);
+        auto *texture_path_ch = env->GetStringUTFChars(texture_path, &jCopy);
+        auto mode_path_str = std::string(mode_path_ch);
+        auto texture_path_str = std::string(texture_path_ch);
+        env->ReleaseStringUTFChars(mode_path, mode_path_ch);
+        env->ReleaseStringUTFChars(texture_path, texture_path_ch);
+        m_p_gl3_mode->gl_mode_obj(w, h, mode_path_str, texture_path_str);
+    } else if (type == 2) {
+        m_p_gl3_mode->update_viewport(w, h);
+    }
+}
+
 #define JNI_LENGTH(n) (sizeof(n)/sizeof((n)[0]))
 const char *JNI_CLASS = {
         "com/av/render/AVRender"
@@ -108,6 +130,11 @@ JNINativeMethod JNI_METHODS[] = {
                 "native_gl3_sky_box_draw",
                 "(III[B)V",
                 (void *) native_gl3_sky_box_draw
+        },
+        {
+                "native_gl3_mode_obj_draw",
+                "(IIILjava/lang/String;Ljava/lang/String;)V",
+                (void *) native_gl3_mode_obj_draw
         },
 };
 

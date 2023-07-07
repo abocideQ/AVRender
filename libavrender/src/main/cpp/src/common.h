@@ -2,7 +2,15 @@
 #define AVRENDER_COMMON_H
 
 /**
- * log printf
+ * include
+ */
+#include <string>
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+/**
+ * Log
  */
 #ifdef __WIN32__
 
@@ -23,12 +31,7 @@
 #endif
 
 /**
- * include
- */
-#include <string>
-
-/**
- * define
+ * Define
  */
 #define GET_CHAR(x) #x
 #define GL_SHADER_VERSION300 "#version 300 es \n"

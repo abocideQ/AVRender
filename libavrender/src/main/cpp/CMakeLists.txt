@@ -5,7 +5,8 @@ set(SOURCE_HEAD
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/include/glm
-        ${CMAKE_SOURCE_DIR}/include/stb)
+        ${CMAKE_SOURCE_DIR}/include/stb
+        )
 set(SOURCE_CPP
         ${CMAKE_SOURCE_DIR}/render_jni.cpp
         ${CMAKE_SOURCE_DIR}/src/common.h
@@ -15,7 +16,9 @@ set(SOURCE_CPP
         ${CMAKE_SOURCE_DIR}/src/gl3_box.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_light.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_freetype_text.cpp
-        ${CMAKE_SOURCE_DIR}/src/gl3_sky_box.cpp)
+        ${CMAKE_SOURCE_DIR}/src/gl3_sky_box.cpp
+        ${CMAKE_SOURCE_DIR}/src/gl3_mode_obj.cpp
+        )
 include_directories(${SOURCE_HEAD})
 add_library(avrender
         SHARED

@@ -62,6 +62,11 @@ class MainActivity : AppCompatActivity() {
             button.text = "gl3DrawSkyBox"
             button.setOnClickListener { gl3DrawSkyBox(findViewById(R.id.fl_root)) }
             container.addView(button)
+            // gl3draw_mode_obj
+            button = Button(baseContext)
+            button.text = "gl3DrawModeObj"
+            button.setOnClickListener { gl3DrawModeObj(findViewById(R.id.fl_root)) }
+            container.addView(button)
         }
     }
 
@@ -215,6 +220,29 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
                 glRender.native_gl3_sky_box_draw(2, width, height, null)
+            }
+        })
+        container.removeAllViews()
+        container.addView(glSurfaceView)
+    }
+
+    private fun gl3DrawModeObj(container: ViewGroup) {
+        val modePath = AssetUtils.asset2cache(baseContext, "mode_tank_t90a.obj")
+        val texPath = AssetUtils.asset2cache(baseContext, "texture_tank_t90a.jpg")
+        val bitmap = BitmapFactory.decodeFile(texPath)
+        val glRender = AVRender()
+        val glSurfaceView = GLSurfaceView(container.context)
+        glSurfaceView.setEGLContextClientVersion(3)
+        glSurfaceView.setRenderer(object : GLSurfaceView.Renderer {
+            override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            }
+
+            override fun onDrawFrame(gl: GL10?) {
+                glRender.native_gl3_mode_obj_draw(1, bitmap.width, bitmap.height, modePath, texPath)
+            }
+
+            override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+                glRender.native_gl3_mode_obj_draw(2, width, height, null, null)
             }
         })
         container.removeAllViews()
