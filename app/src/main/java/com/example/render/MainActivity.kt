@@ -229,7 +229,6 @@ class MainActivity : AppCompatActivity() {
     private fun gl3DrawModeObj(container: ViewGroup) {
         val modePath = AssetUtils.asset2cache(baseContext, "mode_tank_t90a.obj")
         val texPath = AssetUtils.asset2cache(baseContext, "texture_tank_t90a.jpg")
-        val bitmap = BitmapFactory.decodeFile(texPath)
         val glRender = AVRender()
         val glSurfaceView = GLSurfaceView(container.context)
         glSurfaceView.setEGLContextClientVersion(3)
@@ -238,7 +237,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onDrawFrame(gl: GL10?) {
-                glRender.native_gl3_mode_obj_draw(1, bitmap.width, bitmap.height, modePath, texPath)
+                glRender.native_gl3_mode_obj_draw(1, 1000, 1000, modePath, texPath)
             }
 
             override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {

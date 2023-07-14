@@ -95,7 +95,7 @@ void native_gl3_mode_obj_draw(JNIEnv *env, jobject *,
         auto texture_path_str = std::string(texture_path_ch);
         env->ReleaseStringUTFChars(mode_path, mode_path_ch);
         env->ReleaseStringUTFChars(texture_path, texture_path_ch);
-        m_p_gl3_mode->gl_mode_obj(w, h, mode_path_str, texture_path_str);
+        m_p_gl3_mode->gl_mode_obj(0, 0, mode_path_str, texture_path_str);
     } else if (type == 2) {
         m_p_gl3_mode->update_viewport(w, h);
     }

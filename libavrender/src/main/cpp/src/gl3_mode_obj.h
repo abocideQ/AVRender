@@ -2,13 +2,19 @@
 #define AVRENDER_GL3_MODE_OBJ_H
 
 #include "common.h"
+#include "EGL/egl.h"
 #include "GLES3/gl3.h"
+#include "stb_image.h"
+
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "gtc/type_ptr.hpp"
 
 class gl3ModeObj {
 public:
     void update_viewport(int width, int height);
 
-    void gl_mode_obj(int width, int height, std::string, std::string);
+    void gl_mode_obj(int width, int height, std::string &, std::string &);
 
 protected:
     std::vector<std::vector<float>> m_vec_vertex;
@@ -23,10 +29,13 @@ protected:
     GLuint m_tex[1];
 
     GLuint m_fbo[0];
-    GLuint m_fbo_program[2];
-    GLuint m_fbo_vbo[2];
+    GLuint m_fbo_program[1];
+    GLuint m_fbo_vbo[3];
     GLuint m_fbo_vao[1];
     GLuint m_fbo_tex[1];
+    GLuint m_fbo_rbo;
+
+    float m_rotation;
 
     bool initial;
 
@@ -43,7 +52,7 @@ private:
               std::vector<std::vector<float>> *,
               std::vector<std::vector<float>> *);
 
-    static std::vector<std::string> string_split(const std::string &);
+    static std::vector<std::string> string_split(const std::string &, const char *);
 };
 
 
