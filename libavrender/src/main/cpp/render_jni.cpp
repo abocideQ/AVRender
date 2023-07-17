@@ -1,4 +1,7 @@
 #include <jni.h>
+#include <android/native_window_jni.h>
+#include <android/native_window.h>
+#include <thread>
 #include "src/common.h"
 #include "src/gl2_plane.h"
 #include "src/gl3_plane.h"
@@ -6,6 +9,7 @@
 #include "src/gl3_light.h"
 #include "src/gl3_sky_box.h"
 #include "src/gl3_mode_obj.h"
+#include "src/egl_context.h"
 
 auto *m_p_gl2_plane = new gl2Plane();
 
@@ -101,6 +105,31 @@ void native_gl3_mode_obj_draw(JNIEnv *env, jobject *,
     }
 }
 
+eglContext *m_egl = new eglContext();
+
+void native_egl_draw(JNIEnv *env, jobject *,
+                     jint type,
+                     jint w, jint h,
+                     jobject surface) {
+    if (type == 1) { // onscreen
+        ANativeWindow *win = ANativeWindow_fromSurface(env, surface);
+        std::thread t = std::thread([=] {
+            m_egl->onscreenWindowCreate(2, win);
+            while (true) {
+                m_egl->draw();
+                m_egl->onscreenWindowSwap();
+            }
+        });
+        t.detach();
+    } else if (type == 2) { // offscreen
+        std::thread t = std::thread([=] {
+            m_egl->offscreenWindowCreate(2);
+            m_egl->draw();
+        });
+        t.detach();
+    }
+}
+
 #define JNI_LENGTH(n) (sizeof(n)/sizeof((n)[0]))
 const char *JNI_CLASS = {
         "com/av/render/AVRender"
@@ -135,6 +164,11 @@ JNINativeMethod JNI_METHODS[] = {
                 "native_gl3_mode_obj_draw",
                 "(IIILjava/lang/String;Ljava/lang/String;)V",
                 (void *) native_gl3_mode_obj_draw
+        },
+        {
+                "native_egl_draw",
+                "(IIILjava/lang/Object;)V",
+                (void *) native_egl_draw
         },
 };
 

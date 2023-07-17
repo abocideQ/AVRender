@@ -3,9 +3,13 @@ package com.example.render
 import android.Manifest
 import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
+import android.graphics.SurfaceTexture
 import android.opengl.GLSurfaceView
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.Surface
+import android.view.TextureView
+import android.view.TextureView.SurfaceTextureListener
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -66,6 +70,16 @@ class MainActivity : AppCompatActivity() {
             button = Button(baseContext)
             button.text = "gl3DrawModeObj"
             button.setOnClickListener { gl3DrawModeObj(findViewById(R.id.fl_root)) }
+            container.addView(button)
+            // egl_onscreen
+            button = Button(baseContext)
+            button.text = "egl_onscreen"
+            button.setOnClickListener { egl_onscreen(1, findViewById(R.id.fl_root)) }
+            container.addView(button)
+            // egl_offscreen
+            button = Button(baseContext)
+            button.text = "egl_offscreen"
+            button.setOnClickListener { egl_offscreen(2, findViewById(R.id.fl_root)) }
             container.addView(button)
         }
     }
@@ -246,5 +260,45 @@ class MainActivity : AppCompatActivity() {
         })
         container.removeAllViews()
         container.addView(glSurfaceView)
+    }
+
+    private fun egl_onscreen(type: Int, container: ViewGroup) {
+        val glRender = AVRender()
+        val textureView = TextureView(container.context)
+        textureView.surfaceTextureListener = object : SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(surface: SurfaceTexture, w: Int, h: Int) {
+                glRender.native_egl_draw(type, 0, 0, Surface(surface))
+            }
+
+            override fun onSurfaceTextureSizeChanged(s: SurfaceTexture, w: Int, h: Int) {}
+
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                return true
+            }
+
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+        }
+        container.removeAllViews()
+        container.addView(textureView)
+    }
+
+    private fun egl_offscreen(type: Int, container: ViewGroup) {
+        val glRender = AVRender()
+        val textureView = TextureView(container.context)
+        textureView.surfaceTextureListener = object : SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(surface: SurfaceTexture, w: Int, h: Int) {
+                glRender.native_egl_draw(type, w, h, Surface(surface))
+            }
+
+            override fun onSurfaceTextureSizeChanged(s: SurfaceTexture, w: Int, h: Int) {}
+
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+                return true
+            }
+
+            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+        }
+        container.removeAllViews()
+        container.addView(textureView)
     }
 }

@@ -1,5 +1,7 @@
 package com.av.render
 
+import java.util.Objects
+
 class AVRender {
 
     companion object {
@@ -19,4 +21,6 @@ class AVRender {
     external fun native_gl3_sky_box_draw(type: Int, w: Int, h: Int, bytes: ByteArray?)
 
     external fun native_gl3_mode_obj_draw(type: Int, w: Int, h: Int, mode: String?, tex: String?)
+
+    external fun native_egl_draw(type: Int, w: Int, h: Int, surface: Any?)
 }
