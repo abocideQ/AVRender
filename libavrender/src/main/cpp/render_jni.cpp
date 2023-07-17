@@ -123,7 +123,7 @@ void native_egl_draw(JNIEnv *env, jobject *,
         t.detach();
     } else if (type == 2) { // offscreen
         std::thread t = std::thread([=] {
-            m_egl->offscreenWindowCreate(2);
+            m_egl->offscreenWindowCreate(2, w, h);
             m_egl->draw();
         });
         t.detach();
