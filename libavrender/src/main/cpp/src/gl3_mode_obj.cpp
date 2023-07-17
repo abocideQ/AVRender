@@ -2,6 +2,12 @@
 
 #include <utility>
 
+/**
+ * todo obj模型中(顶点/纹理/法线)3者索引各不相同 无法直接使用ebo绘制 则该例只展示顶点数据
+ * 即 面数据为 f 1/2/3 则不能直接使用ebo绘制 需 根据索引重排数据
+ * 如 面数据为 f 1/1/1 则可直接使用ebo绘制
+ */
+
 void gl3ModeObj::update_viewport(int width, int height) {
     m_r_width = width;
     m_r_height = height;
@@ -60,49 +66,6 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
                         fragColor = texture(TexSample, vec2(TexCoord.x, 1.0 - TexCoord.y));
                     }
             );
-    float loc_fbo[] = {
-            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-            0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-            0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-            0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-
-            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-            0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-            0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-            -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-
-            -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-            -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-            -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-
-            0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-            0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-            0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-            0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-
-            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
-            0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-            0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-
-            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-            0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-            0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-            -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-    };
     float loc_screen[] = {
             -1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
             1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
@@ -114,11 +77,15 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
     };
     { // config init
         if (!initial) {
+            LOGE("gl init start");
             initial = true;
-            m_vec_vertex = std::vector<std::vector<float>>();
-            m_vec_texture = std::vector<std::vector<float>>();
-            m_vec_indices = std::vector<std::vector<float>>();
+            m_vec_vertex = std::vector<float>();
+            m_vec_texture = std::vector<float>();
+            m_vec_indices = std::vector<std::vector<int>>();
             obj_parse(mode_path, &m_vec_vertex, &m_vec_texture, &m_vec_indices);
+            LOGE("vertex size=%d", m_vec_vertex.size());
+            LOGE("texture size=%d", m_vec_texture.size());
+            LOGE("indices size=%d", m_vec_indices.size());
             // gl_program
             m_fbo_program[0] = gl_program_create(
                     gl_shader_fbo_vex_plane_source,
@@ -132,9 +99,9 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
             if (m_program[0] == GL_NONE || m_fbo_program[0] == GL_NONE) return;
             // fbo: vbo & vao
             glGenVertexArrays(1, m_fbo_vao);
-            glGenBuffers(3, m_fbo_vbo);
+            glGenBuffers(2, m_fbo_vbo);
             glBindVertexArray(m_fbo_vao[0]);
-            /*glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[0]);
+            glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[0]);
             glBufferData(GL_ARRAY_BUFFER,
                          (GLsizei) (sizeof(GLfloat) * m_vec_vertex.size()),
                          m_vec_vertex.data(),
@@ -144,11 +111,6 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
                          (GLsizei) (sizeof(GLfloat) * m_vec_texture.size()),
                          m_vec_texture.data(),
                          GL_STATIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_fbo_vbo[2]);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                         (GLsizei) (sizeof(GLfloat) * m_vec_indices.size()),
-                         m_vec_indices.data(),
-                         GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[0]);
             glVertexAttribPointer(0, 3,
                                   GL_FLOAT, GL_FALSE,
@@ -156,19 +118,20 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
             glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[1]);
             glVertexAttribPointer(1, 2,
                                   GL_FLOAT, GL_FALSE,
-                                  3 * sizeof(GLfloat), (void *) nullptr);*/
-            glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[0]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof loc_fbo, loc_fbo, GL_STATIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[1]);
-            glBufferData(GL_ARRAY_BUFFER, sizeof loc_fbo, loc_fbo, GL_STATIC_DRAW);
-            glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[0]);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
-                                  (void *) nullptr);
-            glBindBuffer(GL_ARRAY_BUFFER, m_fbo_vbo[1]);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
-                                  (void *) (3 * sizeof(float)));
+                                  3 * sizeof(GLfloat), (void *) nullptr);
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);
+            glBindVertexArray(0);
+            // offscreen ebo
+            for (int i = 0; i < m_vec_indices.size(); i++) {
+                m_fbo_ebo.push_back(0);
+                glGenBuffers(1, &m_fbo_ebo[i]);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_fbo_ebo[i]);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                             (GLsizei) (sizeof(GLint) * m_vec_indices[i].size()),
+                             m_vec_indices[i].data(),
+                             GL_STATIC_DRAW);
+            }
             // screen: vbo & vao
             glGenVertexArrays(1, m_vao);
             glGenBuffers(2, m_vbo);
@@ -193,6 +156,7 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
                                   5 * sizeof(GLfloat), (void *) (3 * sizeof(float)));
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);
+            glBindVertexArray(0);
             // texture
             glGenTextures(1, m_fbo_tex);
             glBindTexture(GL_TEXTURE_2D, m_fbo_tex[0]);
@@ -237,6 +201,7 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
                 LOGE("fbo != GL_FRAMEBUFFER_COMPLETE %d", __LINE__);
             }
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            LOGE("gl init end");
         }
         gl_check(__LINE__);
     }
@@ -258,20 +223,21 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
             // model(world)
             glm::mat4 model = glm::mat4(1.0);
             model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(-75.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
             model = glm::scale(model, glm::vec3(1.0, 1.0, 1.0));
-            auto model_index = glGetUniformLocation(m_program[0], "model");
+            auto model_index = glGetUniformLocation(m_fbo_program[0], "model");
             glUniformMatrix4fv(model_index, 1, GL_FALSE, glm::value_ptr(model));
             // view(camera)
             glm::mat4 view = glm::mat4(1.0);
-            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-            view = glm::rotate(view, glm::radians(m_rotation), glm::vec3(1.0f, 1.0f, 0.0f));
-            auto view_index = glGetUniformLocation(m_program[0], "view");
+            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f));
+            auto view_index = glGetUniformLocation(m_fbo_program[0], "view");
             glUniformMatrix4fv(view_index, 1, GL_FALSE, glm::value_ptr(view));
             // projection(crop)
+            float aspect = (float) m_r_width / (float) m_r_height;
             glm::mat4 proj = glm::mat4(1.0);
-            proj = glm::perspective(glm::radians(45.0f), 9.0f / 16.0f, 1.0f, 1000.0f);
-            auto proj_index = glGetUniformLocation(m_program[0], "projection");
+            proj = glm::perspective(glm::radians(45.0f), aspect, 1.0f, 1000.0f);
+            auto proj_index = glGetUniformLocation(m_fbo_program[0], "projection");
             glUniformMatrix4fv(proj_index, 1, GL_FALSE, glm::value_ptr(proj));
         }
         { // draw
@@ -279,11 +245,14 @@ void gl3ModeObj::gl_mode_obj(int width, int height, std::string &mode_path, std:
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
-//            glDrawElements(GL_TRIANGLES,
-//                           (GLsizei) m_vec_indices.size(),
-//                           GL_UNSIGNED_INT,
-//                           (const void *) nullptr);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+//            glDrawArrays(GL_TRIANGLES, 0, (GLsizei) m_vec_vertex.size());
+            for (int i = 0; i < m_vec_indices.size(); i++) {
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_fbo_ebo[i]);
+                glDrawElements(GL_TRIANGLES,
+                               (GLsizei) m_vec_indices[i].size(),
+                               GL_UNSIGNED_INT,
+                               (const void *) nullptr);
+            }
             glDisable(GL_DEPTH_TEST);
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
                 LOGE("fbo != GL_FRAMEBUFFER_COMPLETE %d", __LINE__);
@@ -383,44 +352,57 @@ void gl3ModeObj::gl_check(int line) {
 }
 
 int gl3ModeObj::obj_parse(const std::string &model_path,
-                          std::vector<std::vector<float>> *vec_vertex,
-                          std::vector<std::vector<float>> *vec_texture,
-                          std::vector<std::vector<float>> *vec_indices) {
+                          std::vector<float> *vec_vertex,
+                          std::vector<float> *vec_texture,
+                          std::vector<std::vector<int>> *vec_indices) {
     std::ifstream file_model(model_path);
     if (!file_model.is_open()) {
         return -1;
     }
+    auto *indices = new std::vector<int>();
+    float vertex_ratio;
     std::string line_str;
     while (std::getline(file_model, line_str)) {
         std::vector<std::string> ret = string_split(line_str, " ");
-        if (ret.empty()) {
+        if (ret.size() == 3) {
+            if (ret[0].find('#') != std::string::npos &&
+                ret[2].find("faces") != std::string::npos) {
+                vec_indices->push_back(*indices);
+                indices = new std::vector<int>();
+            }
+        }
+        if (ret.empty() || ret.size() <= 3) {
             continue;
         }
-        if (ret[0] == "v" && ret.size() > 3) {
-            auto *vertex = new std::vector<float>();
-            vertex->push_back(std::stof(ret[1]));
-            vertex->push_back(std::stof(ret[2]));
-            vertex->push_back(std::stof(ret[3]));
-            vec_vertex->push_back(*vertex);
-        } else if (ret[0] == "vt" && ret.size() > 3) {
-            auto *texture = new std::vector<float>();
-            texture->push_back(std::stof(ret[1]));
-            texture->push_back(std::stof(ret[2]));
-            texture->push_back(std::stof(ret[3]));
-            vec_texture->push_back(*texture);
-        } else if (ret[0] == "f" && ret.size() > 3) {
+        if (ret[0] == "v") {
+            vec_vertex->push_back(std::stof(ret[1]));
+            vec_vertex->push_back(std::stof(ret[2]));
+            vec_vertex->push_back(std::stof(ret[3]));
+            vertex_ratio = std::max(std::abs(std::stof(ret[1])), vertex_ratio);
+            vertex_ratio = std::max(std::abs(std::stof(ret[2])), vertex_ratio);
+            vertex_ratio = std::max(std::abs(std::stof(ret[3])), vertex_ratio);
+        } else if (ret[0] == "vt") {
+            vec_texture->push_back(std::stof(ret[1]));
+            vec_texture->push_back(std::stof(ret[2]));
+            vec_texture->push_back(std::stof(ret[3]));
+        } else if (ret[0] == "f") {
             for (int i = 1; i < ret.size(); i++) {
                 std::vector<std::string> ret_f = string_split(ret[i], "/");
                 if (ret_f.size() < 3) {
                     continue;
                 }
-                auto *indices = new std::vector<float>();
-                indices->push_back(std::stof(ret_f[0]));
-                indices->push_back(std::stof(ret_f[1]));
-                indices->push_back(std::stof(ret_f[2]));
-                vec_indices->push_back(*indices);
+                indices->push_back(std::stoi(ret_f[0]));
+                /**
+                 * todo obj模型中 顶点/纹理/法线 3者索引各不相同 无法使用ebo绘制
+                 */
+                /*indices->push_back(std::stoi(ret_f[1]));
+                indices->push_back(std::stoi(ret_f[2]));*/
             }
         }
+    }
+    // 顶点归一化
+    for (auto &i: *vec_vertex) {
+        i /= vertex_ratio;
     }
     file_model.close();
     return 0;
@@ -435,7 +417,7 @@ std::vector<std::string> gl3ModeObj::string_split(const std::string &content, co
     auto content_len = content.length();
     std::string tmp_str;
     for (int i = 0; i < content_len; i++) {
-        if (content_chr[i] == s[0] || i == content_len - 1) {
+        if (content_chr[i] == s[0]) {
             if (!tmp_str.empty()) {
                 ret->push_back(tmp_str);
             }
@@ -443,6 +425,13 @@ std::vector<std::string> gl3ModeObj::string_split(const std::string &content, co
             continue;
         }
         tmp_str += content_chr[i];
+        if (i == content_len - 1) {
+            if (!tmp_str.empty()) {
+                ret->push_back(tmp_str);
+            }
+            tmp_str = "";
+            continue;
+        }
     }
     return *ret;
 }

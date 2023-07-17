@@ -17,9 +17,9 @@ public:
     void gl_mode_obj(int width, int height, std::string &, std::string &);
 
 protected:
-    std::vector<std::vector<float>> m_vec_vertex;
-    std::vector<std::vector<float>> m_vec_texture;
-    std::vector<std::vector<float>> m_vec_indices;
+    std::vector<float> m_vec_vertex;
+    std::vector<float> m_vec_texture;
+    std::vector<std::vector<int>> m_vec_indices;
 
     int m_r_width, m_r_height;
 
@@ -28,12 +28,13 @@ protected:
     GLuint m_vao[1];
     GLuint m_tex[1];
 
-    GLuint m_fbo[0];
+    GLuint m_fbo[1];
     GLuint m_fbo_program[1];
-    GLuint m_fbo_vbo[3];
+    GLuint m_fbo_vbo[2];
     GLuint m_fbo_vao[1];
     GLuint m_fbo_tex[1];
     GLuint m_fbo_rbo;
+    std::vector<GLuint> m_fbo_ebo = std::vector<GLuint>();
 
     float m_rotation;
 
@@ -48,9 +49,9 @@ private:
 
     static int
     obj_parse(const std::string &,
-              std::vector<std::vector<float>> *,
-              std::vector<std::vector<float>> *,
-              std::vector<std::vector<float>> *);
+              std::vector<float> *,
+              std::vector<float> *,
+              std::vector<std::vector<int>> *);
 
     static std::vector<std::string> string_split(const std::string &, const char *);
 };
