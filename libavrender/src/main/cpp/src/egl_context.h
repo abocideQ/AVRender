@@ -3,9 +3,7 @@
 
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
-
-#include "stb_image.h"
-
+#include "stb_image_write.h"
 #include "common.h"
 
 class eglContext {
@@ -15,11 +13,13 @@ public:
 
     void onscreenWindowSwap();
 
+    void onscreenDraw();
+
     void offscreenWindowCreate(int glVersion, int w, int h);
 
-    void release();
+    void offscreenDraw(std::string &save_path_name);
 
-    void draw();
+    void release();
 
 protected:
     EGLDisplay m_eglDisplay;
@@ -27,8 +27,8 @@ protected:
     EGLContext m_eglContext;
 
     int m_r_width, m_r_height;
-
-    GLuint m_a_program;
+    GLuint m_onscreen_program;
+    GLuint m_offscreen_program;
 
     bool initial;
 

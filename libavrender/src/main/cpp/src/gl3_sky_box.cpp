@@ -1,8 +1,5 @@
-#include "gl3_sky_box.h"
-
 #define STB_IMAGE_IMPLEMENTATION
-
-#include "stb_image.h"
+#include "gl3_sky_box.h"
 
 void gl3SkyBox::update_viewport(int width, int height) {
     m_r_width = width;

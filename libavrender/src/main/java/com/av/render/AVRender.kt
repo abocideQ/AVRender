@@ -22,5 +22,5 @@ class AVRender {
 
     external fun native_gl3_mode_obj_draw(type: Int, w: Int, h: Int, mode: String?, tex: String?)
 
-    external fun native_egl_draw(type: Int, w: Int, h: Int, surface: Any?)
+    external fun native_egl_draw(type: Int, w: Int, h: Int, surface: Any?, savePathName: String?)
 }

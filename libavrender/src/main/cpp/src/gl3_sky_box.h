@@ -1,12 +1,13 @@
 #ifndef AVRENDER_GL3_SKY_BOX_H
 #define AVRENDER_GL3_SKY_BOX_H
 
-#include "common.h"
 #include "EGL/egl.h"
 #include "GLES3/gl3.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
+#include "stb_image.h"
+#include "common.h"
 
 class gl3SkyBox {
 public:

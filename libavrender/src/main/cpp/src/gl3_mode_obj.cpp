@@ -1,7 +1,5 @@
 #include "gl3_mode_obj.h"
 
-#include <utility>
-
 /**
  * todo obj模型中(顶点/纹理/法线)3者索引各不相同 无法直接使用ebo绘制 则该例只展示顶点数据
  * 即 面数据为 f 1/2/3 则不能直接使用ebo绘制 需 根据索引重排数据

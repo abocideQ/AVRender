@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
             // egl_offscreen
             button = Button(baseContext)
             button.text = "egl_offscreen"
-            button.setOnClickListener { egl_offscreen(2, findViewById(R.id.fl_root)) }
+            button.setOnClickListener { egl_offscreen(2) }
             container.addView(button)
         }
     }
@@ -267,7 +267,7 @@ class MainActivity : AppCompatActivity() {
         val textureView = TextureView(container.context)
         textureView.surfaceTextureListener = object : SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, w: Int, h: Int) {
-                glRender.native_egl_draw(type, 0, 0, Surface(surface))
+                glRender.native_egl_draw(type, 0, 0, Surface(surface), null)
             }
 
             override fun onSurfaceTextureSizeChanged(s: SurfaceTexture, w: Int, h: Int) {}
@@ -282,23 +282,8 @@ class MainActivity : AppCompatActivity() {
         container.addView(textureView)
     }
 
-    private fun egl_offscreen(type: Int, container: ViewGroup) {
+    private fun egl_offscreen(type: Int) {
         val glRender = AVRender()
-        val textureView = TextureView(container.context)
-        textureView.surfaceTextureListener = object : SurfaceTextureListener {
-            override fun onSurfaceTextureAvailable(surface: SurfaceTexture, w: Int, h: Int) {
-                glRender.native_egl_draw(type, w, h, Surface(surface))
-            }
-
-            override fun onSurfaceTextureSizeChanged(s: SurfaceTexture, w: Int, h: Int) {}
-
-            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-                return true
-            }
-
-            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
-        }
-        container.removeAllViews()
-        container.addView(textureView)
+        glRender.native_egl_draw(type, 200, 200, null, obbDir.absolutePath + "/off.jpg")
     }
 }

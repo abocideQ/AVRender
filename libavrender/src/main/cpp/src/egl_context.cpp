@@ -1,3 +1,5 @@
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "egl_context.h"
 
 void eglContext::onscreenWindowCreate(int glVersion, ANativeWindow *native_window) {
@@ -53,7 +55,46 @@ void eglContext::onscreenWindowSwap() {
     eglSwapBuffers(m_eglDisplay, m_eglSurface);
 }
 
+void eglContext::onscreenDraw() {
+    const char *gl_shader_vertex_source_plane = GET_CHAR(
+            precision highp float;
+            attribute vec4 aPosition;
+            void main() {
+                gl_Position = vec4(aPosition.xyz, 1.0);
+            }
+    );
+    const char *gl_shader_fragment_source_plane = GET_CHAR(
+            precision highp float;
+            void main() {
+                gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
+            }
+    );
+    float loc_vertex[] = {
+            -1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f,
+    };
+    if (!initial) {
+        initial = true;
+        // gl_program
+        m_onscreen_program = gl_program_create(
+                gl_shader_vertex_source_plane,
+                gl_shader_fragment_source_plane
+        );
+    }
+    glUseProgram(m_onscreen_program);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) loc_vertex);
+    glEnableVertexAttribArray(0);
+    gl_check(__LINE__);
+    glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    gl_check(__LINE__);
+}
+
 void eglContext::offscreenWindowCreate(int glVersion, int w, int h) {
+    m_r_width = w;
+    m_r_height = h;
     m_eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     EGLDisplay eglDisplay = m_eglDisplay;
     if (eglDisplay == EGL_NO_DISPLAY) {
@@ -80,7 +121,7 @@ void eglContext::offscreenWindowCreate(int glVersion, int w, int h) {
     }
     const EGLint eglSurfaceAttr[] = {
             EGL_WIDTH, w,
-            EGL_HEIGHT,h,
+            EGL_HEIGHT, h,
             EGL_NONE
     };
     m_eglSurface = eglCreatePbufferSurface(eglDisplay, eglConfig, eglSurfaceAttr);
@@ -107,6 +148,50 @@ void eglContext::offscreenWindowCreate(int glVersion, int w, int h) {
     }
 }
 
+void eglContext::offscreenDraw(std::string &save_path_name) {
+    const char *gl_shader_vertex_source_plane = GET_CHAR(
+            precision highp float;
+            attribute vec4 aPosition;
+            void main() {
+                gl_Position = vec4(aPosition.xyz, 1.0);
+            }
+    );
+    const char *gl_shader_fragment_source_plane = GET_CHAR(
+            precision highp float;
+            void main() {
+                gl_FragColor = vec4(0.2, 0.3, 0.4, 1.0);
+            }
+    );
+    float loc_vertex[] = {
+            -1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f,
+    };
+    if (!initial) {
+        initial = true;
+        // gl_program
+        m_offscreen_program = gl_program_create(
+                gl_shader_vertex_source_plane,
+                gl_shader_fragment_source_plane
+        );
+    }
+    glUseProgram(m_offscreen_program);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) loc_vertex);
+    glEnableVertexAttribArray(0);
+    gl_check(__LINE__);
+    glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    gl_check(__LINE__);
+    auto *data = new uint8_t[m_r_width * m_r_height * 4];
+    glReadPixels(0, 0, m_r_width, m_r_height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    stbi_write_jpg(save_path_name.c_str(),
+                   m_r_width, m_r_height,
+                   4, data, m_r_width * 4);
+    gl_check(__LINE__);
+    delete[] data;
+}
+
 void eglContext::release() {
     if (m_eglDisplay != EGL_NO_DISPLAY) {
         eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -118,51 +203,6 @@ void eglContext::release() {
     m_eglDisplay = EGL_NO_DISPLAY;
     m_eglSurface = EGL_NO_SURFACE;
     m_eglContext = EGL_NO_CONTEXT;
-}
-
-void eglContext::draw() {
-    const char *gl_shader_vertex_source_plane = GET_CHAR(
-            precision highp float;
-            attribute vec4 aPosition;
-            void main() {
-                gl_Position = vec4(aPosition.xyz, 1.0);
-            }
-    );
-    const char *gl_shader_fragment_source_plane = GET_CHAR(
-            precision highp float;
-            void main() {
-                gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
-            }
-    );
-    float loc_vertex[] = {
-            -1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f,
-            1.0f, -1.0f, 0.0f,
-    };
-    { // config gl_program & texture
-        if (!initial) {
-            initial = true;
-            // gl_program
-            m_a_program = gl_program_create(
-                    gl_shader_vertex_source_plane,
-                    gl_shader_fragment_source_plane
-            );
-        }
-    }
-    { // use gl_program
-        glUseProgram(m_a_program);
-    }
-    { // bind Shader_attribute aPosition & aTexCoord
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) loc_vertex);
-        glEnableVertexAttribArray(0);
-        gl_check(__LINE__);
-    }
-    { // drawArray
-        glClear(GL_STENCIL_BUFFER_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glClearColor(1.0, 1.0, 1.0, 1.0);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        gl_check(__LINE__);
-    }
 }
 
 GLuint eglContext::gl_program_create(const char *vertex, const char *fragment) {

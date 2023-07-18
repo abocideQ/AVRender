@@ -110,22 +110,27 @@ eglContext *m_egl = new eglContext();
 void native_egl_draw(JNIEnv *env, jobject *,
                      jint type,
                      jint w, jint h,
-                     jobject surface) {
+                     jobject surface,
+                     jstring save_path_name) {
     if (type == 1) { // onscreen
         ANativeWindow *win = ANativeWindow_fromSurface(env, surface);
-        std::thread t = std::thread([=] {
-            m_egl->onscreenWindowCreate(2, win);
-            while (true) {
-                m_egl->draw();
+        std::thread t = std::thread([=](ANativeWindow *w) {
+            m_egl->onscreenWindowCreate(2, w);
+            for (int i = 0; i < 10; i++) {
+                m_egl->onscreenDraw();
                 m_egl->onscreenWindowSwap();
             }
-        });
+        }, win);
         t.detach();
     } else if (type == 2) { // offscreen
-        std::thread t = std::thread([=] {
+        jboolean jCopy = false;
+        auto *save_path_name_ch = env->GetStringUTFChars(save_path_name, &jCopy);
+        auto save_path_name_str = std::string(save_path_name_ch);
+        env->ReleaseStringUTFChars(save_path_name, save_path_name_ch);
+        std::thread t = std::thread([=](std::string str) {
             m_egl->offscreenWindowCreate(2, w, h);
-            m_egl->draw();
-        });
+            m_egl->offscreenDraw(str);
+        }, save_path_name_str);
         t.detach();
     }
 }
@@ -167,7 +172,7 @@ JNINativeMethod JNI_METHODS[] = {
         },
         {
                 "native_egl_draw",
-                "(IIILjava/lang/Object;)V",
+                "(IIILjava/lang/Object;Ljava/lang/String;)V",
                 (void *) native_egl_draw
         },
 };
