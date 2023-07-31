@@ -10,6 +10,7 @@
 #include "src/gl3_sky_box.h"
 #include "src/gl3_mode_obj.h"
 #include "src/egl_context.h"
+#include "src/gl3_sea.h"
 
 auto *m_p_gl2_plane = new gl2Plane();
 
@@ -135,6 +136,19 @@ void native_egl_draw(JNIEnv *env, jobject *,
     }
 }
 
+gl3Sea *m_gl3Sea = new gl3Sea();
+
+void native_gl3_sea_draw(JNIEnv *env, jobject *,
+                         jint jtype,
+                         jint jw,
+                         jint jh) {
+    if (jtype == 1) {
+        m_gl3Sea->gl_sea();
+    } else if (jtype == 2) {
+        m_gl3Sea->update_viewport(jw, jh);
+    }
+}
+
 #define JNI_LENGTH(n) (sizeof(n)/sizeof((n)[0]))
 const char *JNI_CLASS = {
         "com/av/render/AVRender"
@@ -174,6 +188,11 @@ JNINativeMethod JNI_METHODS[] = {
                 "native_egl_draw",
                 "(IIILjava/lang/Object;Ljava/lang/String;)V",
                 (void *) native_egl_draw
+        },
+        {
+                "native_gl3_sea_draw",
+                "(III)V",
+                (void *) native_gl3_sea_draw
         },
 };
 

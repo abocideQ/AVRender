@@ -18,6 +18,7 @@ set(SOURCE_CPP
         ${CMAKE_SOURCE_DIR}/src/gl3_freetype_text.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_sky_box.cpp
         ${CMAKE_SOURCE_DIR}/src/gl3_mode_obj.cpp
+        ${CMAKE_SOURCE_DIR}/src/gl3_sea.cpp
         )
 include_directories(${SOURCE_HEAD})
 add_library(avrender

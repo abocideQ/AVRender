@@ -81,6 +81,11 @@ class MainActivity : AppCompatActivity() {
             button.text = "egl_offscreen"
             button.setOnClickListener { egl_offscreen(2) }
             container.addView(button)
+            // gl3draw_sea
+            button = Button(baseContext)
+            button.text = "gl3DrawSea"
+            button.setOnClickListener { gl3Sea(findViewById(R.id.fl_root)) }
+            container.addView(button)
         }
     }
 
@@ -285,5 +290,25 @@ class MainActivity : AppCompatActivity() {
     private fun egl_offscreen(type: Int) {
         val glRender = AVRender()
         glRender.native_egl_draw(type, 200, 200, null, obbDir.absolutePath + "/off.jpg")
+    }
+
+    private fun gl3Sea(container: ViewGroup) {
+        val glRender = AVRender()
+        val glSurfaceView = GLSurfaceView(container.context)
+        glSurfaceView.setEGLContextClientVersion(3)
+        glSurfaceView.setRenderer(object : GLSurfaceView.Renderer {
+            override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            }
+
+            override fun onDrawFrame(gl: GL10?) {
+                glRender.native_gl3_sea_draw(1, 0, 0)
+            }
+
+            override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+                glRender.native_gl3_sea_draw(2, width, height)
+            }
+        })
+        container.removeAllViews()
+        container.addView(glSurfaceView)
     }
 }
